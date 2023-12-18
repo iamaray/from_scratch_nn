@@ -1,15 +1,5 @@
 import numpy as np
-
-activationFunctions = {
-    'sigmoid': lambda x: (1 / (1 + np.exp(-x))),
-    'sigmoid_deriv': lambda x: activationFunctions['sigmoid'](x) * (1 - activationFunctions['sigmoid'](x)),
-
-    'tanh': lambda x: np.tanh(x),
-    'tanh_deriv': lambda x: (4 / ((np.exp(x) + np.exp(-x))**2)),
-
-    'ReLu': lambda x: max(0, x),
-    'ReLu_deriv': lambda x: 1 if x > 0 else 0
-}
+from nn_utils import *
 
 
 class Perceptron:
@@ -40,3 +30,10 @@ class Perceptron:
             float: the weighted input passed into the activation function.
         """
         return self.activationFunc(np.dot([1] + inputLst, self.weights))
+
+    def updateWeights(self, deltas):
+        """
+        Update the weights of this perceptron using the delta rule.
+        """
+        for i in range(len(self.weights)):
+            self.weights[i] += deltas[i]
