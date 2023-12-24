@@ -9,11 +9,14 @@ class Perceptron:
         self.activationFunc = activationFunctions[activation]
         self.activationDeriv = activationFunctions[activation + '_deriv']
 
-        if weights == None:
-            self.weights = np.random.random_sample((inputLen, ))
+        if weights is None:
+            self.weights = np.random.standard_normal(self.inputLen)
 
         else:
             self.weights = weights
+
+    def computeWeightedInput(self, prevOutputs):
+        return np.dot([1] + prevOutputs, self.weights)
 
     def computeOutput(self, inputLst):
         """
@@ -29,7 +32,10 @@ class Perceptron:
         Returns:
             float: the weighted input passed into the activation function.
         """
-        return self.activationFunc(np.dot([1] + inputLst, self.weights))
+        return self.activationFunc(self.computeWeightedInput(inputLst))
+
+    def activationGrad(self, inputLst):
+        return self.activationDeriv(self.computeWeightedInput(inputLst))
 
     def updateWeights(self, deltas):
         """

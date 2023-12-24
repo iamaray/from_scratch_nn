@@ -10,8 +10,10 @@ activationFunctions = {
 }
 
 
-# TODO: loss functions
-#   L1 loss
-#   L2 loss
-#   Cross-entropy loss
-lossFunctions = {}
+"""
+Loss Functions
+"""
+
+
+def squared_loss(y_hat, y):
+    return (y_hat - y) ** 2
