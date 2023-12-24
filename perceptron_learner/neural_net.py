@@ -24,7 +24,8 @@ class NeuralNet:
         #   => numLayers = N + 2
         self.numLayers = self.depth + 1
         self.layers = [[None]] * self.depth + [[None]]
-        self.layer_outputs = np.array([[0] * self.input_len] + [[0] * self.width] * self.numLayers)
+        self.layer_outputs = np.array(
+            [[0] * self.input_len] + [[0] * self.width] * self.numLayers)
 
         # initialize layers with random weights
         self.initializeRandomWeights()
@@ -58,7 +59,7 @@ class NeuralNet:
         """
         # output = []
         # output.append(inputs)
-        
+
         for layerNum in range(self.numLayers):
             layerOutput = []
             for perceptron in self.layers[layerNum]:
@@ -66,6 +67,43 @@ class NeuralNet:
             self.layer_outputs[layerNum + 1] = layerOutput
 
         # self.layer_outputs = output
+
+    def getLayerMatrix(self, layer):
+        """Compute the matrix of weights for each layer:
+                L_k = [
+
+                        k_w_11    k_w_12    .   .   .
+
+                        k_w_21    k_w_22    .   .   .
+
+                        k_w_31    k_w_32    .   .   .
+
+                        .       .   .
+
+                        .       .       .
+
+                        .       .            .
+                    ]
+
+            for layer k.
+        """
+        lMat = np.empty((1, 1))
+        for neuronNum in range(len(layer)):
+            np.append(lMat, layer[neuronNum].weights)
+        return lMat
+
+    def getLayerActGrad(self, layer, prevOuts):
+        """ Computes a vector of each node's activation derivative in a given layer, based on the
+            previous layer's outputs:
+
+                nambla_g = [g_k1'(prevOuts), ..., g_kn'(prevOuts)]
+
+            for layer nodes 1, ..., n in layer k.
+        """
+        actGrad = np.empty((1, 1))
+        for neuronNum in range(len(layer)):
+            np.append(actGrad, layer[neuronNum].activationGrad(prevOuts))
+        return actGrad
 
     # TODO: one iteration of gradient descent
     def single_mb_gradientDescent(
@@ -85,9 +123,9 @@ class NeuralNet:
         momentum : float
             momentum coefficient
         """
-        
+
         # TODO: fix accessing and updating weights
-        
+
         for X, Y in miniBatch:
             # perform a forward pass to compute the outputs at each layer
             self.feedForward(X)
@@ -101,10 +139,17 @@ class NeuralNet:
             error_o = self.loss_func(self.layer_outputs[-1], Y)
             for i in reversed(range(len(self.layers) - 1)):
                 # mutliply error with weights transpose to get gradients
-                
+
                 # TODO: fix how the weights are accessed here
+                # error_i = np.multiply(
+                #     self.layers[i+1].weights.T.dot(error_o), self.layers[i].activationGrad(self.layer_outputs[i - 1]))
+                prevOuts = self.layer_outputs[i - 1]
+                layerMat = self.getLayerMatrix(self.layers[i])
+                # compute vector of all local activation gradients
+                layerActivationGrad = self.getLayerActGrad(
+                    self.layers[i], prevOuts)
                 error_i = np.multiply(
-                    self.layers[i+1].weights.T.dot(error_o), self.layers[i].activationGrad(self.layer_outputs[i - 1]))
+                    layerMat.T, layerActivationGrad)
                 # store gradient for weights
                 delta_w[i+1] = error_o.dot(self.layers[i].T)/len(y)
                 # store gradients for biases
@@ -112,13 +157,13 @@ class NeuralNet:
                                       keepdims=True)/len(y)
                 # assign the previous layers error as current error and repeat the process.
                 error_o = error_i
+
             delta_w[0] = error_o.dot(X)  # gradients for last layer
-            
-            if self.loss_func == squared_loss: # multiply  1/n by the residual sum of squares
+            if self.loss_func == squared_loss:  # multiply  1/n by the residual sum of squares
                 delta_b[0] = np.sum(error_o, axis=1, keepdims=True)/len(y)
-            
+
             # return (delta_w, delta_b)
-            
+
             # TODO: update weights
 
     # TODO: training loop
@@ -152,5 +197,3 @@ class NeuralNet:
         while iters <= numEpochs:
             self.single_mb_gradientDescent(examples, currAlpha)
             currAlpha *= decay
-            
-            
