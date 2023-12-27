@@ -37,9 +37,10 @@ class Perceptron:
     def activationGrad(self, inputLst):
         return self.activationDeriv(self.computeWeightedInput(inputLst))
 
-    def updateWeights(self, deltas):
+    def updateWeights(self, deltas_w, deltas_b, alpha):
         """
         Update the weights of this perceptron using the delta rule.
         """
         for i in range(len(self.weights)):
-            self.weights[i] += deltas[i]
+            self.weights[0] - (alpha * deltas_B)
+            self.weights[1:] - (alpha * deltas_w)

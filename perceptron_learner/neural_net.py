@@ -108,7 +108,8 @@ class NeuralNet:
     # TODO: one iteration of gradient descent
     def single_mb_gradientDescent(
         self,
-        miniBatch,
+        X,
+        Y,
         alpha,
         momentum
     ):
@@ -126,45 +127,42 @@ class NeuralNet:
 
         # TODO: fix accessing and updating weights
 
-        for X, Y in miniBatch:
-            # perform a forward pass to compute the outputs at each layer
-            self.feedForward(X)
+        delta = list()  # Empty list to store derivatives
+        # stores weight updates
+        delta_w = [0 for _ in range(len(self.layers))]
+        # stores bias updates
+        delta_b = [0 for _ in range(len(self.layers))]
+        # Calculate the the error at output layer.
+        error_o = (self.layer_outputs[-1] - Y)
+        for i in reversed(range(len(self.layers) - 1)):
+            # mutliply error with weights transpose to get gradients
 
-            delta = list()  # Empty list to store derivatives
-            # stores weight updates
-            delta_w = [0 for _ in range(len(self.layers))]
-            # stores bias updates
-            delta_b = [0 for _ in range(len(self.layers))]
-            # Calculate the the error at output layer.
-            error_o = self.loss_func(self.layer_outputs[-1], Y)
-            for i in reversed(range(len(self.layers) - 1)):
-                # mutliply error with weights transpose to get gradients
-
-                # TODO: fix how the weights are accessed here
-                # error_i = np.multiply(
-                #     self.layers[i+1].weights.T.dot(error_o), self.layers[i].activationGrad(self.layer_outputs[i - 1]))
-                prevOuts = self.layer_outputs[i - 1]
-                layerMat = self.getLayerMatrix(self.layers[i])
-                # compute vector of all local activation gradients
-                layerActivationGrad = self.getLayerActGrad(
-                    self.layers[i], prevOuts)
-                error_i = np.multiply(
-                    layerMat.T, layerActivationGrad)
-                # store gradient for weights
-                delta_w[i+1] = error_o.dot(self.layers[i].T)/len(y)
-                # store gradients for biases
-                delta_b[i+1] = np.sum(error_o, axis=1,
-                                      keepdims=True)/len(y)
-                # assign the previous layers error as current error and repeat the process.
-                error_o = error_i
-
-            delta_w[0] = error_o.dot(X)  # gradients for last layer
+            # TODO: fix how the weights are accessed here
+            prevOuts = self.layer_outputs[i - 1]
+            layerMat = self.getLayerMatrix(self.layers[i])
+            # compute vector of all local activation gradients
+            layerActivationGrad = self.getLayerActGrad(
+                self.layers[i], prevOuts)
+            error_i = np.multiply(
+                layerMat.T.dot(error_o), layerActivationGrad)
+            # store gradient for weights
             if self.loss_func == squared_loss:  # multiply  1/n by the residual sum of squares
-                delta_b[0] = np.sum(error_o, axis=1, keepdims=True)/len(y)
+                delta_w[i+1] = error_o.dot(self.layer_outputs[i].T)/len(Y)
+            # store gradients for biases
+            delta_b[i+1] = (1/len(Y)) * np.sum(error_o, axis=1,
+                                               keepdims=True)
+            # assign the previous layers error as current error and repeat the process.
+            error_o = error_i
 
-            # return (delta_w, delta_b)
+        delta_w[0] = error_o.dot(X)  # gradients for last layer
+        if self.loss_func == squared_loss:  # multiply  1/n by the residual sum of squares
+            delta_b[0] = np.sum(error_o, axis=1, keepdims=True)/len(Y)
 
-            # TODO: update weights
+        return (delta_w, delta_b)
+
+    def update_layer_weights(self, layer, deltas_w, deltas_b, alpha):
+        for neuron in layer:
+            neuron.updateWeights(deltas_w, deltas_b, alpha)
 
     # TODO: training loop
 
@@ -194,6 +192,14 @@ class NeuralNet:
         # TODO: implement mini-batching and momentum
         currAlpha = alpha
         iters = 0
+        miniBatch = None
         while iters <= numEpochs:
-            self.single_mb_gradientDescent(examples, currAlpha)
+            for X, Y in miniBatch:
+                self.feedForward(X)
+                dW, dB = self.single_mb_gradientDescent(
+                    X, Y, momentum)
+                for i in range(self.numLayers):
+                    self.update_layer_weights(
+                        self.layers[i], dW, dB, currAlpha)
             currAlpha *= decay
+            iters += 1
